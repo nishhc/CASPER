@@ -1,4 +1,4 @@
-from util.tgtinputhandler import *
+from utils.tgtinputhandler import *
 
 TARGET_FASTA = "target.fasta"
 

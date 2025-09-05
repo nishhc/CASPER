@@ -1,4 +1,5 @@
 import sys
+from utils.casperlog import *
 
 class SequenceData:
     def __init__(self, filepath):
@@ -25,13 +26,10 @@ class SequenceData:
                 self.sequence = self.cleanseq(raw_sequence)
                 
             self.stat()
-            
-            print("[SYSTEM] Preprocessing complete.")
-            print(f"Sequence Name: {self.sequence_name}")
-            print(f"Sequence: {self.sequence}")
-            print(f"Sequence Length: {self.length}")
-            print(f"GC Content: {self.gc_content:.2f}%")
-            print(f"Max Homopolymer Run: {self.max_homopolymer_run}")
+            clog(f'''Sequence Name: {self.sequence_name}
+Sequence Length: {self.length}
+GC Content: {self.gc_content:.2f}%
+Max Homopolymer Run: {self.max_homopolymer_run}''', "PREPROCESSING COMPLETE")
 
         except FileNotFoundError:
             sys.exit(f"Error: The file at '{self.filepath}' was not found.")
