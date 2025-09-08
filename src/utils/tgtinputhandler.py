@@ -65,4 +65,3 @@ Max Homopolymer Run: {self.max_homopolymer_run}''', "PREPROCESSING COMPLETE")
                 if run_length > max_run:
                     max_run = run_length
             self.max_homopolymer_run = max_run
-            
