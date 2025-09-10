@@ -46,10 +46,13 @@ class PrimerFilter:
     @staticmethod
     def has_gquad_3p(seq):
         return 1 if seq[-4:].upper() == 'GGGG' else 0
-
+    
+    def to_csv(self, output_csv: str):
+        self.df.to_csv(output_csv, index=False)
+        return output_csv
     def process_row(self, row):
         fp = row['forward_primer']
-        rp = row['reverse_primer']
+        rp = row['backward_primer']
         amplicon = row['amplicon']
         cr = row.get('crrna', '')
         guide_pam = cr[:4] if len(cr) >= 4 else ''
@@ -80,10 +83,9 @@ class PrimerFilter:
         df = pd.read_csv(self.csv_filename)
         features = df.apply(self.process_row, axis=1)
         data = pd.concat([df, features], axis=1)
-        filtered = data[
+        return data [
             (data['overlap_pam'] == 0) &
             (data['overlap_protospacer'] == 0) &
-            (data['guide_pam'].apply(self.pam_cas12a_match)) &
             (data['amplicon_len'].between(100, 220)) &
             (data['fp_len'].between(28, 36)) &
             (data['rp_len'].between(28, 36)) &
@@ -100,7 +102,6 @@ class PrimerFilter:
             (data['fp_seq'].apply(self.gc_clamp_ok)) &
             (data['rp_seq'].apply(self.gc_clamp_ok))
         ]
-        filtered.to_csv("filtered_sequences.csv", index=False)
-        if filtered.empty:
-            print("None passed filters")
+
+
 

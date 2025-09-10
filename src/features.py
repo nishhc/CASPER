@@ -1,65 +1,73 @@
-# ...existing code...
-
+# features_only.py
+import re
+import math
 import pandas as pd
-import primer3
-import ViennaRNA
-ALPHA_CRISPR = 4.0    # off-target exponent (crRNA)
-P_CRISPR     = 1.2
-ALPHA_PRIMER = 3.0    # off-target exponent (FP/RP)
-P_PRIMER     = 1.0
 
-# Thermo assumptions (tune to your kit/buffer)
+
+try:
+    import primer3
+except Exception:
+    primer3 = None
+
+try:
+    import RNA  # ViennaRNA Python bindings
+except Exception:
+    RNA = None
+
+
+# ==== Chemistry params (tune as needed) ====
 DNA_Na_mM = 50.0
 DNA_Mg_mM = 8.0
 DNA_dNTP_mM = 0.6
 DNA_oligo_nM = 250.0
 
-# Seed window for Cas12a (PAM-proximal)
 CAS12A_SEED_LEN = 8
+
+
 class FeatureCalculator:
-    def __init__(self, csv_filename):
-        self.csv_filename = csv_filename
-        self.df = pd.read_csv(csv_filename)
-    
-    def calc_tm(self, seq: str) -> float:
-        return primer3.calcTm(
-            seq.upper(),
-            mv_conc=DNA_Na_mM, dv_conc=DNA_Mg_mM,
-            dntp_conc=DNA_dNTP_mM,
-            dna_conc=DNA_oligo_nM
-        )
-    def percent_mismatch(seq1, seq2):
-        # Compare two sequences, return percent mismatches
-        min_len = min(len(seq1), len(seq2))
-        mismatches = sum(1 for a, b in zip(seq1[:min_len], seq2[:min_len]) if a != b)
-        return 100 * mismatches / min_len if min_len > 0 else 0
+    """
+    Compute CRISPR/RPA feature columns and append them to the input dataframe.
 
-    def calc_fp_self_dimer_pct(self, fp):
-        # Compare forward primer to itself (reverse complement for true dimerization)
-        return self.percent_mismatch(fp, fp[::-1])
+    Expected (optional) columns in CSV:
+      - fp, rp, crrna, amplicon
+      - background_seqs (semicolon/pipe/comma-separated DNA strings)
+      - guide_aln, fp_aln, rp_aln (semicolon/pipe/comma-separated aligned strings)
+      - guide_start, guide_len, fp_start, fp_len, rp_start, rp_len, pam_start, pam_len (ints, 0-based)
 
-    def calc_rp_self_dimer_pct(self, rp):
-        # Compare reverse primer to itself (reverse complement for true dimerization)
-        return self.percent_mismatch(rp, rp[::-1])
+    Missing fields are handled; unavailable features default to sensible values/NaNs.
+    """
 
-    def calc_fp_rp_cross_dimer_pct(self, fp, rp):
-        # Compare forward primer to reverse primer
-        return self.percent_mismatch(fp, rp)
+    # ----------------- helpers -----------------
+    @staticmethod
+    def _revcomp(seq: str) -> str:
+        if not isinstance(seq, str):
+            return ""
+        tbl = str.maketrans("ACGTUacgtu", "TGCAA" + "tgcaa")
+        return seq.translate(tbl)[::-1]
 
-    def calc_fp_crrna_dimer_pct(self, fp, crrna):
-        # Compare forward primer to crRNA
-        return self.percent_mismatch(fp, crrna)
+    @staticmethod
+    def _to_rna(seq: str) -> str:
+        return (seq or "").upper().replace("T", "U")
 
-    def calc_rp_crrna_dimer_pct(self, rp, crrna):
-        # Compare reverse primer to crRNA
-        return self.percent_mismatch(rp, crrna)
-    def three_prime_self_run(seq: str) -> int:
-        """
-        Length of the homopolymer run at the 3' end.
-        e.g., ...AAAT -> 1 (T), ...AAATT -> 2 (TT), ...AAA -> 3 (AAA)
-        """
-        s = seq.upper().replace("U","T")
-        if not s: return 0
+    @staticmethod
+    def _gc_pct(seq: str) -> float:
+        s = (seq or "").upper().replace("U", "T")
+        return (100.0 * (s.count("G") + s.count("C")) / len(s)) if s else 0.0
+    @staticmethod
+    def _percent_mismatch(seq1: str, seq2: str) -> float:
+        s1 = (seq1 or "")
+        s2 = (seq2 or "")
+        n = min(len(s1), len(s2))
+        if n == 0:
+            return 0.0
+        mm = sum(a != b for a, b in zip(s1[:n], s2[:n]))
+        return 100.0 * mm / n
+
+    @staticmethod
+    def _three_prime_self_run(seq: str) -> int:
+        s = seq.replace("U", "T")
+        if not s:
+            return 0
         last = s[-1]
         run = 0
         for ch in reversed(s):
@@ -69,130 +77,255 @@ class FeatureCalculator:
                 break
         return run
 
-    def revcomp(seq: str) -> str:
-        t = str.maketrans("ACGTUacgtu", "TGCAA tgcaa".replace(" ", ""))
-        return seq.translate(t)[::-1]
-
-    def three_prime_cross_run(fp: str, rp: str, tail_len: int = 8) -> int:
-        """
-        Max contiguous complementarity between the last `tail_len` nt of FP (3' tail)
-        and the last `tail_len` nt of RP, after reverse-complementing RP.
-        Returns an integer run length (0..tail_len).
-        """
-        fp_tail = fp[-tail_len:].upper().replace("U","T")
-        rp_tail_rc = revcomp(rp[-tail_len:])
-        # longest suffix of fp_tail that equals prefix of rp_tail_rc
+    def _three_prime_cross_run(self, fp: str, rp: str, tail_len: int = 8) -> int:
+        fp_tail = (fp or "")[-tail_len:].upper().replace("U", "T")
+        rp_tail_rc = self._revcomp((rp or "")[-tail_len:])
         best = 0
         for k in range(1, tail_len + 1):
             if fp_tail[-k:] == rp_tail_rc[:k]:
                 best = k
         return best
-    
 
-    def _to_rna(seq: str) -> str:
-        return seq.upper().replace("T", "U")
+    @staticmethod
+    def _calc_tm(seq: str) -> float:
+        s = (seq or "").upper()
+        if not s:
+            return float("nan")
+        if primer3 is None:
+            # Wallace fallback if primer3 isn't installed
+            return 2.0 * (s.count("A") + s.count("T")) + 4.0 * (s.count("G") + s.count("C"))
+        try:
+            return float(
+                primer3.calcTm(
+                    s,
+                    mv_conc=DNA_Na_mM,
+                    dv_conc=DNA_Mg_mM,
+                    dntp_conc=DNA_dNTP_mM,
+                    dna_conc=DNA_oligo_nM,
+                )
+            )
+        except Exception:
+            return float("nan")
 
-    def gc_pct(seq: str) -> float:
-        s = seq.upper().replace("U","T")
-        return (100.0 * (s.count("G") + s.count("C")) / len(s)) if s else 0.0
+    @staticmethod
+    def _seed_len_max(guide_seq: str, seed_len: int = CAS12A_SEED_LEN) -> int:
+        return min(seed_len, len(guide_seq or ""))
 
-    def seed_len_max(guide_seq: str, seed_len: int = CAS12A_SEED_LEN) -> int:
-        """
-        Length of the PAM-proximal contiguous seed we consider (cap at guide length).
-        For Cas12a, default 8 nt.
-        """
-        return min(seed_len, len(guide_seq))
-
-    def seed_max_run(guide_seq: str, seed_len: int = CAS12A_SEED_LEN) -> int:
-        """
-        Longest homopolymer run length within the seed window (first seed_len nt).
-        """
-        s = guide_seq[:seed_len].upper()
+    @staticmethod
+    def _seed_max_run(guide_seq: str, seed_len: int = CAS12A_SEED_LEN) -> int:
+        s = (guide_seq or "")[:seed_len].upper()
         if not s:
             return 0
-        runs = [len(r) for r in re.findall(r'(A+|C+|G+|T+|U+)', s)]
+        runs = [len(r) for r in re.findall(r"(A+|C+|G+|T+|U+)", s)]
         return max(runs) if runs else 0
 
-    def seed_gc_pct(guide_seq: str, seed_len: int = CAS12A_SEED_LEN) -> float:
-        """
-        GC percentage within the seed window (first seed_len nt).
-        """
-        s = guide_seq[:seed_len]
-        return gc_pct(s)
-
-    def guide_mfe_kcal(guide_seq: str) -> float:
-        """
-        Minimum free energy (kcal/mol) of the guide spacer as RNA.
-        More negative = more structured (potentially less accessible).
-        """
-        if not _HAS_VIENNA:
-            # Fallback if ViennaRNA isn't installed
+    def _guide_mfe_kcal(self, guide_seq: str) -> float:
+        if not guide_seq or RNA is None:
             return float("nan")
-        rna = _to_rna(guide_seq)
-        _, mfe = RNA.fold(rna)  # returns (dotbracket, mfe)
-        return float(mfe)
+        try:
+            rna = self._to_rna(guide_seq)
+            _, mfe = RNA.fold(rna)
+            return float(mfe)
+        except Exception:
+            return float("nan")
 
-    def guide_seed_unpaired_frac(guide_seq: str, seed_len: int = CAS12A_SEED_LEN) -> float:
-        """
-        Average probability that each base in the seed is unpaired (0..1),
-        using ViennaRNA partition function. Higher = more accessible.
-        """
-        if not _HAS_VIENNA:
-            # Reasonable neutral fallback if ViennaRNA isn't present
-            return 0.5
-        rna = _to_rna(guide_seq)
-        fc = RNA.fold_compound(rna)
-        fc.pf()  # compute partition function
-        n = len(rna)
-        L = min(seed_len, n)
-        if L == 0:
+    def _seed_unpaired_frac(self, guide_seq: str, seed_len: int = CAS12A_SEED_LEN) -> float:
+        if not guide_seq or RNA is None:
+            return float("nan")
+        try:
+            rna = self._to_rna(guide_seq)
+            fc = RNA.fold_compound(rna)
+            fc.pf()
+            n = len(rna)
+            L = min(seed_len, n)
+            if L == 0:
+                return float("nan")
+            unpaired = []
+            # ViennaRNA is 1-based
+            for i in range(1, L + 1):
+                paired_prob = sum(fc.bpp(i, j) for j in range(1, n + 1) if j != i)
+                unpaired.append(max(0.0, 1.0 - paired_prob))
+            vals = [min(1.0, max(0.0, p)) for p in unpaired]
+            return float(sum(vals) / len(vals)) if vals else float("nan")
+        except Exception:
+            return float("nan")
+
+    @staticmethod
+    def _calc_overlap_interval(a_start, a_len, b_start, b_len) -> bool:
+        """Return True if [a] overlaps [b]; tolerate None."""
+        try:
+            a0, a1 = int(a_start), int(a_start) + int(a_len) - 1
+            b0, b1 = int(b_start), int(b_start) + int(b_len) - 1
+        except Exception:
+            return False
+        return not (a1 < b0 or a0 > b1)
+
+    @staticmethod
+    def _safe_int(x, default=None):
+        try:
+            return int(x)
+        except Exception:
+            return default
+
+    @staticmethod
+    def _split_list(cell: str):
+        """Split semicolon/pipe/comma-separated cell into list, stripping spaces."""
+        if cell is None or (isinstance(cell, float) and math.isnan(cell)):
+            return []
+        s = str(cell)
+        for sep in [";", "|", ","]:
+            if sep in s:
+                return [t.strip() for t in s.split(sep) if t.strip()]
+        s = s.strip()
+        return [s] if s else []
+
+    @staticmethod
+    def _conservation(ref: str, aligned: list[str]) -> float:
+        if not ref or not aligned:
             return 0.0
-        unpaired_probs = []
-        for i in range(1, L + 1):  # 1-based indexing in ViennaRNA
-            paired_prob = 0.0
-            for j in range(1, n + 1):
-                if j == i:
-                    continue
-                paired_prob += fc.bpp(i, j)
-            unpaired_probs.append(max(0.0, 1.0 - paired_prob))
-        # clamp to [0,1] and average
-        vals = [min(1.0, max(0.0, p)) for p in unpaired_probs]
-        return float(sum(vals) / len(vals))
-        
+        n = len(ref)
+        if n == 0:
+            return 0.0
+        aligned = [a for a in aligned if len(a) == n]
+        if not aligned:
+            return 0.0
+        conserved = 0
+        for i, base in enumerate(ref):
+            if all(a[i] == base for a in aligned):
+                conserved += 1
+        return conserved / n
+
+    # ----------------- ctor -----------------
+    def __init__(self, csv_filename: str):
+        self.csv_filename = csv_filename
+        self.df = pd.read_csv(csv_filename)
+
+    # ----------------- public API -----------------
+    def compute_all_features(self):
+        df = self.df
+
+        # Ensure columns exist
+        for col in [
+            "fp",
+            "rp",
+            "crrna",
+            "amplicon",
+            "background_seqs",
+            "guide_aln",
+            "fp_aln",
+            "rp_aln",
+            "guide_start",
+            "guide_len",
+            "fp_start",
+            "fp_len",
+            "rp_start",
+            "rp_len",
+            "pam_start",
+            "pam_len",
+        ]:
+            if col not in df.columns:
+                df[col] = None
+
+        # Parse list-like cells once
+        bg_lists = df["background_seqs"].map(self._split_list)
+
+        # Tm features
+        df["fp_tm_C"] = df["fp"].map(self._calc_tm)
+        df["rp_tm_C"] = df["rp"].map(self._calc_tm)
+        df["delta_tm_C"] = (df["fp_tm_C"] - df["rp_tm_C"]).abs()
+
+        # Dimer proxies (percent mismatches)
+        df["fp_self_dimer_pct"] = df["fp"].map(lambda s: self._percent_mismatch(s, self._revcomp(s)))
+        df["rp_self_dimer_pct"] = df["rp"].map(lambda s: self._percent_mismatch(s, self._revcomp(s)))
+        df["fp_rp_cross_dimer_pct"] = df.apply(
+            lambda r: self._percent_mismatch(r.get("fp"), r.get("rp"))
+        )
+
+        # 3' run features
+        df["fp_3p_self_run"] = df["fp"].map(self._three_prime_self_run(""))
+        df["rp_3p_self_run"] = df["rp"].map(self._three_prime_self_run(""))
+        df["fp_rp_3p_cross_run"] = df.apply(
+            lambda r: self._three_prime_cross_run(r.get("fp", ""), r.get("rp", ""), 8), axis=1
+        )
+
+        # Seed features (use crRNA as the guide)
+        df["seed_len"] = df["crrna"].map(lambda s: self._seed_len_max(s, CAS12A_SEED_LEN))
+        df["seed_max_run"] = df["crrna"].map(lambda s: self._seed_max_run(s, CAS12A_SEED_LEN))
+        df["seed_gc_pct"] = df["crrna"].map(lambda s: self._gc_pct((s or "")[:CAS12A_SEED_LEN]))
+
+        # Guide structure/accessibility
+        df["guide_mfe_kcal"] = df["crrna"].map(self._guide_mfe_kcal)
+        df["guide_seed_unpaired_frac"] = df["crrna"].map(
+            lambda s: self._seed_unpaired_frac(s, CAS12A_SEED_LEN)
+        )
+
+        # Overlap features (1 = good/no overlap, 0 = bad/overlap)
+        def _overlap_protospacer_row(r):
+            g_start = self._safe_int(r.get("guide_start"))
+            g_len = self._safe_int(r.get("guide_len"))
+            fp_s = self._safe_int(r.get("fp_start"))
+            fp_l = self._safe_int(r.get("fp_len"))
+            rp_s = self._safe_int(r.get("rp_start"))
+            rp_l = self._safe_int(r.get("rp_len"))
+            if None in (g_start, g_len, fp_s, fp_l, rp_s, rp_l):
+                return 1
+            overlap_fp = self._calc_overlap_interval(g_start, g_len, fp_s, fp_l)
+            overlap_rp = self._calc_overlap_interval(g_start, g_len, rp_s, rp_l)
+            return int(not (overlap_fp or overlap_rp))
+
+        def _overlap_pam_row(r):
+            pam_s = self._safe_int(r.get("pam_start"))
+            pam_l = self._safe_int(r.get("pam_len"))
+            fp_s = self._safe_int(r.get("fp_start"))
+            fp_l = self._safe_int(r.get("fp_len"))
+            rp_s = self._safe_int(r.get("rp_start"))
+            rp_l = self._safe_int(r.get("rp_len"))
+            if None in (pam_s, pam_l, fp_s, fp_l, rp_s, rp_l):
+                return 1
+            overlap_fp = self._calc_overlap_interval(pam_s, pam_l, fp_s, fp_l)
+            overlap_rp = self._calc_overlap_interval(pam_s, pam_l, rp_s, rp_l)
+            return int(not (overlap_fp or overlap_rp))
+
+        df["overlap_protospacer"] = df.apply(_overlap_protospacer_row, axis=1)
+        df["overlap_pam"] = df.apply(_overlap_pam_row, axis=1)
+
+        # Conservation features (fraction 0..1)
+        def _cons(ref, aln_cell):
+            return self._conservation(ref or "", self._split_list(aln_cell))
+
+        df["guide_conservation"] = df.apply(lambda r: _cons(r.get("crrna", ""), r.get("guide_aln")), axis=1)
+        df["fp_conservation"] = df.apply(lambda r: _cons(r.get("fp", ""), r.get("fp_aln")), axis=1)
+        df["rp_conservation"] = df.apply(lambda r: _cons(r.get("rp", ""), r.get("rp_aln")), axis=1)
+
+        # Off-target mismatch proxies:
+        # Convert best percent mismatch vs background into an "importance-like" signal in [0,1]
+        # (1 - mm%), without ranking/scoring aggregation.
+        def _best_mm_vs_bg(query: str, bgs: list[str]) -> float:
+            if not query or not bgs:
+                return 100.0  # treat as max mismatch if no backgrounds given
+            vals = [self._percent_mismatch(query, b[: len(query)]) for b in bgs if b]
+            return min(vals) if vals else 100.0
+
+        df["crrna_offtarget_mm_imp"] = [
+            max(0.0, min(1.0, 1.0 - _best_mm_vs_bg(q, b) / 100.0))
+            for q, b in zip(df["crrna"], bg_lists)
+        ]
+        df["fp_offtarget_mm_imp"] = [
+            max(0.0, min(1.0, 1.0 - _best_mm_vs_bg(q, b) / 100.0))
+            for q, b in zip(df["fp"], bg_lists)
+        ]
+        df["rp_offtarget_mm_imp"] = [
+            max(0.0, min(1.0, 1.0 - _best_mm_vs_bg(q, b) / 100.0))
+            for q, b in zip(df["rp"], bg_lists)
+        ]
+
+        self.df = df
+        return self
+
+    def to_csv(self, output_csv: str):
+        self.df.to_csv(output_csv, index=False)
+        return output_csv
 
 
-FEATURE_WEIGHTS = {
-
-    "crrna_offtarget_mm_imp": 0.12,
-    "fp_offtarget_mm_imp": 0.11,
-    "rp_offtarget_mm_imp": 0.11,
 
 
-    "fp_3p_self_run": 0.06,
-    "rp_3p_self_run": 0.06,
-    "fp_rp_3p_cross_run": 0.06,
-
-
-    "fp_self_dimer_pct": 0.05,
-    "rp_self_dimer_pct": 0.05,
-    "fp_rp_cross_dimer_pct": 0.05,
-
-
-    "seed_len": 0.06,
-    "seed_max_run": 0.04,
-    "seed_gc_pct": 0.03,
-    "guide_mfe_kcal": 0.02,
-    "guide_seed_unpaired_frac": 0.02,
-
-
-    "delta_tm_C": 0.08,
-
-
-    "overlap_protospacer": 0.02,
-    "overlap_pam": 0.02,
-
-
-    "guide_conservation": 0.02,
-    "fp_conservation": 0.005,
-    "rp_conservation": 0.005,
-}
