@@ -53,7 +53,7 @@ class Ranker:
     def rank(self):
         df = self.df
         # Filtering
-        df = df[
+        '''df = df[
             (df["overlap_pam"] == 0) &
             (df["overlap_protospacer"] == 0) &
             (df["amplicon_len"].between(100, 220)) &
@@ -69,10 +69,10 @@ class Ranker:
             (df["rp_gquad_3p"] == 0) &
             (df["fp_max_hpoly_run"] <= 4) &
             (df["rp_max_hpoly_run"] <= 4) &
-            (df["amplicon_max_run"] <= 5) &
-            (df["fp_tail_gc"].between(1, 3)) &
-            (df["rp_tail_gc"].between(1, 3))
-        ]
+            (df["amplicon_max_run"] <= 5) 
+            #(df["fp_tail_gc"].between(1, 3)) &
+            #(df["rp_tail_gc"].between(1, 3))
+        ]'''
         # Normalization
         for feature in self.FEATURE_WEIGHTS:
             if feature in df.columns:
@@ -100,7 +100,7 @@ class Ranker:
             total_weight = sum(self.FEATURE_WEIGHTS[f] for f in features)
             subscore = sum(df[f] * self.FEATURE_WEIGHTS[f] for f in features if f in df.columns) / total_weight
             df[category + "_subscore"] = subscore
-        self.df = df
+        return df
 
     def to_csv(self, output_csv):
-        self.df.to_csv(output_csv, index=False)
+        return self.df.to_csv(output_csv, index=False)

@@ -85,10 +85,7 @@ class PrimerFilter:
         data = pd.concat([df, features], axis=1)
         return data [
             (data['overlap_pam'] == 0) &
-            (data['overlap_protospacer'] == 0) &
-            (data['amplicon_len'].between(100, 220)) &
-            (data['fp_len'].between(28, 36)) &
-            (data['rp_len'].between(28, 36)) &
+            (data['overlap_protospacer'] == 0) &   
             (data['fp_gc_pct'].between(35, 65)) &
             (data['rp_gc_pct'].between(35, 65)) &
             (data['amplicon_gc_pct'].between(35, 65)) &

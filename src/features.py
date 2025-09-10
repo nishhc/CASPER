@@ -238,12 +238,15 @@ class FeatureCalculator:
         df["fp_self_dimer_pct"] = df["fp"].map(lambda s: self._percent_mismatch(s, self._revcomp(s)))
         df["rp_self_dimer_pct"] = df["rp"].map(lambda s: self._percent_mismatch(s, self._revcomp(s)))
         df["fp_rp_cross_dimer_pct"] = df.apply(
-            lambda r: self._percent_mismatch(r.get("fp"), r.get("rp"))
+            lambda r: self._percent_mismatch(r.get("fp"), r.get("rp")), axis=1
         )
 
+
         # 3' run features
-        df["fp_3p_self_run"] = df["fp"].map(self._three_prime_self_run(""))
-        df["rp_3p_self_run"] = df["rp"].map(self._three_prime_self_run(""))
+        # 3' run features
+        df["fp_3p_self_run"] = df["fp"].map(lambda s: self._three_prime_self_run(s or ""))
+        df["rp_3p_self_run"] = df["rp"].map(lambda s: self._three_prime_self_run(s or ""))
+
         df["fp_rp_3p_cross_run"] = df.apply(
             lambda r: self._three_prime_cross_run(r.get("fp", ""), r.get("rp", ""), 8), axis=1
         )
@@ -268,7 +271,7 @@ class FeatureCalculator:
             rp_s = self._safe_int(r.get("rp_start"))
             rp_l = self._safe_int(r.get("rp_len"))
             if None in (g_start, g_len, fp_s, fp_l, rp_s, rp_l):
-                return 1
+                return 0
             overlap_fp = self._calc_overlap_interval(g_start, g_len, fp_s, fp_l)
             overlap_rp = self._calc_overlap_interval(g_start, g_len, rp_s, rp_l)
             return int(not (overlap_fp or overlap_rp))
@@ -281,7 +284,7 @@ class FeatureCalculator:
             rp_s = self._safe_int(r.get("rp_start"))
             rp_l = self._safe_int(r.get("rp_len"))
             if None in (pam_s, pam_l, fp_s, fp_l, rp_s, rp_l):
-                return 1
+                return 0
             overlap_fp = self._calc_overlap_interval(pam_s, pam_l, fp_s, fp_l)
             overlap_rp = self._calc_overlap_interval(pam_s, pam_l, rp_s, rp_l)
             return int(not (overlap_fp or overlap_rp))

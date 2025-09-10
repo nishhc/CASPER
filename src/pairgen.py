@@ -13,7 +13,7 @@ class PairGenerator:
     # forward primer - bp
     # backward primer - complementary
     def generate_primers_pairs(self):
-        primerLenRange = [30,34]
+        primerLenRange = [28,36]
         amplen = [100,200]
         crrnalen = [20,24]
         seq = self.sequence
