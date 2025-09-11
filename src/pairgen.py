@@ -13,6 +13,7 @@ class PairGenerator:
     # forward primer - bp
     # backward primer - complementary
     def generate_primers_pairs(self):
+        seen = set()
         primerLenRange = [28,36]
         amplen = [100,200]
         crrnalen = [20,24]
@@ -51,7 +52,14 @@ class PairGenerator:
                                     crRNA = find_complementary(self, amplicon[i:i+cr_len])
                                     if len(crRNA) >= crrnalen[0]:
                                         pair = Pair(fp, find_complementary(self, bp), amplicon, crRNA)
-                                        self.primersPairs.append(pair)                         
+
+
+                                        key = (fp, find_complementary(self, bp), amplicon, crRNA)
+                                        if key not in seen:
+                                            if fp == "ACGGGTTGGATAAGATAGTAAGTGCAATCTGG" and bp == find_complementary(self,"ACCCAACCCAAACATCTATCATTCACGTTAGA") and amplicon == "GGGTTGTGTTTGAGCGGCGTTTCAGTTGTTTATTTCCCTTTGTTATTCCCTTTGGGGTTGTTGTTTGGTTGTGTGTTTATACCAGCTTATTCAATTCACTTGGTGGTGGTGGCGGGATGGGA" and crRNA == "AAAGGGAAACAATAAGGGAAACCC":
+                                                print("hello")
+                                            seen.add(key)
+                                            self.primersPairs.append(Pair(*key))
 
         pairs = self.primersPairs  
 

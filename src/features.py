@@ -91,12 +91,9 @@ class FeatureCalculator:
         s = (seq or "").upper()
         if not s:
             return float("nan")
-        if primer3 is None:
-            # Wallace fallback if primer3 isn't installed
-            return 2.0 * (s.count("A") + s.count("T")) + 4.0 * (s.count("G") + s.count("C"))
         try:
             return float(
-                primer3.calcTm(
+                primer3.calc_tm(
                     s,
                     mv_conc=DNA_Na_mM,
                     dv_conc=DNA_Mg_mM,
@@ -179,22 +176,6 @@ class FeatureCalculator:
         s = s.strip()
         return [s] if s else []
 
-    @staticmethod
-    def _conservation(ref: str, aligned: list[str]) -> float:
-        if not ref or not aligned:
-            return 0.0
-        n = len(ref)
-        if n == 0:
-            return 0.0
-        aligned = [a for a in aligned if len(a) == n]
-        if not aligned:
-            return 0.0
-        conserved = 0
-        for i, base in enumerate(ref):
-            if all(a[i] == base for a in aligned):
-                conserved += 1
-        return conserved / n
-
     # ----------------- ctor -----------------
     def __init__(self, csv_filename: str):
         self.csv_filename = csv_filename
@@ -206,49 +187,34 @@ class FeatureCalculator:
 
         # Ensure columns exist
         for col in [
-            "fp",
-            "rp",
-            "crrna",
-            "amplicon",
             "background_seqs",
-            "guide_aln",
-            "fp_aln",
-            "rp_aln",
-            "guide_start",
-            "guide_len",
-            "fp_start",
-            "fp_len",
-            "rp_start",
-            "rp_len",
-            "pam_start",
-            "pam_len",
         ]:
             if col not in df.columns:
-                df[col] = None
+                df[col] = "ATACCAGCTTATTCAATTGGTTGGTCTGGTTGGCCCGTGTGTCATTACGGGTTGGATAAGATAGTAAGTGCAATCTGGGGGTTGTGTTTGAGCGGCGTTTCAGTTGTTTATTTCCCTTTGTTATTCCCTTTGGGGTTGTTGTTTGGTTGTGTGTTTATACCAGCTTATTCAATTCACTTGGTGGTGGTGGCGGGATGGGATGGGTTGGGTTTGTAGATAGTAAGTGCAATCT"
 
         # Parse list-like cells once
         bg_lists = df["background_seqs"].map(self._split_list)
 
         # Tm features
-        df["fp_tm_C"] = df["fp"].map(self._calc_tm)
-        df["rp_tm_C"] = df["rp"].map(self._calc_tm)
+        df["fp_tm_C"] = df["forward_primer"].map(self._calc_tm)
+        df["rp_tm_C"] = df["backward_primer"].map(self._calc_tm)
         df["delta_tm_C"] = (df["fp_tm_C"] - df["rp_tm_C"]).abs()
 
         # Dimer proxies (percent mismatches)
-        df["fp_self_dimer_pct"] = df["fp"].map(lambda s: self._percent_mismatch(s, self._revcomp(s)))
-        df["rp_self_dimer_pct"] = df["rp"].map(lambda s: self._percent_mismatch(s, self._revcomp(s)))
+        df["fp_self_dimer_pct"] = df["forward_primer"].map(lambda s: self._percent_mismatch(s, self._revcomp(s)))
+        df["rp_self_dimer_pct"] = df["backward_primer"].map(lambda s: self._percent_mismatch(s, self._revcomp(s)))
         df["fp_rp_cross_dimer_pct"] = df.apply(
-            lambda r: self._percent_mismatch(r.get("fp"), r.get("rp")), axis=1
+            lambda r: self._percent_mismatch(r.get("forward_primer"), r.get("backward_primer")), axis=1
         )
 
 
         # 3' run features
         # 3' run features
-        df["fp_3p_self_run"] = df["fp"].map(lambda s: self._three_prime_self_run(s or ""))
-        df["rp_3p_self_run"] = df["rp"].map(lambda s: self._three_prime_self_run(s or ""))
+        df["fp_3p_self_run"] = df["forward_primer"].map(lambda s: self._three_prime_self_run(s or ""))
+        df["rp_3p_self_run"] = df["backward_primer"].map(lambda s: self._three_prime_self_run(s or ""))
 
         df["fp_rp_3p_cross_run"] = df.apply(
-            lambda r: self._three_prime_cross_run(r.get("fp", ""), r.get("rp", ""), 8), axis=1
+            lambda r: self._three_prime_cross_run(r.get("forward_primer", ""), r.get("backward_primer", ""), 8), axis=1
         )
 
         # Seed features (use crRNA as the guide)
@@ -258,9 +224,6 @@ class FeatureCalculator:
 
         # Guide structure/accessibility
         df["guide_mfe_kcal"] = df["crrna"].map(self._guide_mfe_kcal)
-        df["guide_seed_unpaired_frac"] = df["crrna"].map(
-            lambda s: self._seed_unpaired_frac(s, CAS12A_SEED_LEN)
-        )
 
         # Overlap features (1 = good/no overlap, 0 = bad/overlap)
         def _overlap_protospacer_row(r):
@@ -292,13 +255,6 @@ class FeatureCalculator:
         df["overlap_protospacer"] = df.apply(_overlap_protospacer_row, axis=1)
         df["overlap_pam"] = df.apply(_overlap_pam_row, axis=1)
 
-        # Conservation features (fraction 0..1)
-        def _cons(ref, aln_cell):
-            return self._conservation(ref or "", self._split_list(aln_cell))
-
-        df["guide_conservation"] = df.apply(lambda r: _cons(r.get("crrna", ""), r.get("guide_aln")), axis=1)
-        df["fp_conservation"] = df.apply(lambda r: _cons(r.get("fp", ""), r.get("fp_aln")), axis=1)
-        df["rp_conservation"] = df.apply(lambda r: _cons(r.get("rp", ""), r.get("rp_aln")), axis=1)
 
         # Off-target mismatch proxies:
         # Convert best percent mismatch vs background into an "importance-like" signal in [0,1]
@@ -315,11 +271,11 @@ class FeatureCalculator:
         ]
         df["fp_offtarget_mm_imp"] = [
             max(0.0, min(1.0, 1.0 - _best_mm_vs_bg(q, b) / 100.0))
-            for q, b in zip(df["fp"], bg_lists)
+            for q, b in zip(df["forward_primer"], bg_lists)
         ]
         df["rp_offtarget_mm_imp"] = [
             max(0.0, min(1.0, 1.0 - _best_mm_vs_bg(q, b) / 100.0))
-            for q, b in zip(df["rp"], bg_lists)
+            for q, b in zip(df["backward_primer"], bg_lists)
         ]
 
         self.df = df

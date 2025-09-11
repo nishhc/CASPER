@@ -2,48 +2,71 @@ import pandas as pd
 
 class Ranker:
     FEATURE_WEIGHTS = {
+    "crrna_offtarget_mm_imp": 0.1096,
+    "fp_offtarget_mm_imp":    0.1005,
+    "rp_offtarget_mm_imp":    0.1005,
 
-    "crrna_offtarget_mm_imp": 0.12,
-    "fp_offtarget_mm_imp": 0.11,
-    "rp_offtarget_mm_imp": 0.11,
+    "fp_3p_self_run":         0.0593,
+    "rp_3p_self_run":         0.0593,
+    "fp_rp_3p_cross_run":     0.0593,
 
+    "fp_self_dimer_pct":      0.0365,
+    "rp_self_dimer_pct":      0.0365,
+    "fp_rp_cross_dimer_pct":  0.0365,
+    "fp_gc_pct":              0.0228,
+    "rp_gc_pct":              0.0228,
+    "amplicon_gc_pct":        0.0228,
 
-    "fp_3p_self_run": 0.06,
-    "rp_3p_self_run": 0.06,
-    "fp_rp_3p_cross_run": 0.06,
+    "seed_max_run":           0.0319,
+    "seed_gc_pct":            0.0228,
+    "guide_mfe_kcal":         0.0136,
+    "guide_seed_unpaired_frac": 0.0274,
 
+    "delta_tm_C":             0.0913,
+    "fp_tm_C":                0.0274,
+    "rp_tm_C":                0.0274,
 
-    "fp_self_dimer_pct": 0.05,
-    "rp_self_dimer_pct": 0.05,
-    "fp_rp_cross_dimer_pct": 0.05,
-
-
-    "seed_len": 0.06,
-    "seed_max_run": 0.04,
-    "seed_gc_pct": 0.03,
-    "guide_mfe_kcal": 0.02,
-    "guide_seed_unpaired_frac": 0.02,
-
-
-    "delta_tm_C": 0.08,
-
-
-    "overlap_protospacer": 0.02,
-    "overlap_pam": 0.02,
-
-
-    "guide_conservation": 0.02,
-    "fp_conservation": 0.005,
-    "rp_conservation": 0.005,
+    "overlap_protospacer":    0.0182,
+    "overlap_pam":            0.0182,
 }
+
+    FEATURE_SPECS = {
+        "crrna_offtarget_mm_imp": {"type": "smaller_better_exp", "best": 0.0, "half_life": 1.0},
+        "fp_offtarget_mm_imp":    {"type": "smaller_better_exp", "best": 0.0, "half_life": 1.0},
+        "rp_offtarget_mm_imp":    {"type": "smaller_better_exp", "best": 0.0, "half_life": 1.0},
+
+        "fp_3p_self_run":         {"type": "smaller_better_exp", "best": 0.0, "half_life": 1.0},
+        "rp_3p_self_run":         {"type": "smaller_better_exp", "best": 0.0, "half_life": 1.0},
+        "fp_rp_3p_cross_run":     {"type": "smaller_better_exp", "best": 0.0, "half_life": 1.0},
+
+        "fp_self_dimer_pct":      {"type": "smaller_better_lin", "L": 0.0, "H": 50.0},
+        "rp_self_dimer_pct":      {"type": "smaller_better_lin", "L": 0.0, "H": 50.0},
+        "fp_rp_cross_dimer_pct":  {"type": "smaller_better_lin", "L": 0.0, "H": 50.0},
+
+        "fp_gc_pct":              {"type": "range_plateau", "a": 40.0, "b": 60.0, "falloff": 10.0},
+        "rp_gc_pct":              {"type": "range_plateau", "a": 40.0, "b": 60.0, "falloff": 10.0},
+        "amplicon_gc_pct":        {"type": "range_plateau", "a": 35.0, "b": 65.0, "falloff": 10.0},
+
+        "seed_max_run":           {"type": "smaller_better_lin", "L": 0.0, "H": 5.0},
+        "seed_gc_pct":            {"type": "range_plateau", "a": 35.0, "b": 60.0, "falloff": 10.0},
+        "guide_mfe_kcal":         {"type": "bigger_better_lin", "L": -60.0, "H": 0.0},
+        "guide_seed_unpaired_frac":{"type": "bigger_better_lin", "L": 0.0, "H": 1.0},
+
+        "delta_tm_C":             {"type": "target_laplace", "t": 0.0, "s": 1.5},
+        "fp_tm_C":                {"type": "range_plateau", "a": 55.0, "b": 65.0, "falloff": 7.0},
+        "rp_tm_C":                {"type": "range_plateau", "a": 55.0, "b": 65.0, "falloff": 7.0},
+
+        "overlap_protospacer":    {"type": "smaller_better_lin", "L": 0.0, "H": 1.0},
+        "overlap_pam":            {"type": "smaller_better_lin", "L": 0.0, "H": 1.0},
+    }
+
     CATEGORY_FEATURES = {
     "Off-targets": ["crrna_offtarget_mm_imp", "fp_offtarget_mm_imp", "rp_offtarget_mm_imp"],
     "3′ end stability": ["fp_3p_self_run", "rp_3p_self_run", "fp_rp_3p_cross_run"],
     "Primer dimers / secondary structure": ["fp_self_dimer_pct", "rp_self_dimer_pct", "fp_rp_cross_dimer_pct"],
     "Guide seed & structure": ["seed_len", "seed_max_run", "seed_gc_pct", "guide_mfe_kcal", "guide_seed_unpaired_frac"],
     "Tm balance": ["delta_tm_C"],
-    "Cross-interactions": ["overlap_protospacer", "overlap_pam"],
-    "Conservation": ["guide_conservation", "fp_conservation", "rp_conservation"],
+    "Cross-interactions": ["overlap_protospacer", "overlap_pam"]
 }
 
     def __init__(self, input_csv):

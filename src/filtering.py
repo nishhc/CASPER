@@ -43,9 +43,6 @@ class PrimerFilter:
                 break
         return run
 
-    @staticmethod
-    def has_gquad_3p(seq):
-        return 1 if seq[-4:].upper() == 'GGGG' else 0
     
     def to_csv(self, output_csv: str):
         self.df.to_csv(output_csv, index=False)
@@ -67,14 +64,9 @@ class PrimerFilter:
             'amplicon_len': len(amplicon),
             'fp_3p_self_run': self.self_3p_run(fp),
             'rp_3p_self_run': self.self_3p_run(rp),
-            'fp_gquad_3p': self.has_gquad_3p(fp),
-            'rp_gquad_3p': self.has_gquad_3p(rp),
             'fp_max_hpoly_run': self.max_hpoly_run(fp),
             'rp_max_hpoly_run': self.max_hpoly_run(rp),
             'amplicon_max_run': self.max_run(amplicon),
-            'fp_seq': fp,
-            'rp_seq': rp,
-            'guide_pam': guide_pam,
             'overlap_pam': overlap_pam,
             'overlap_protospacer': overlap_protospacer
         })
@@ -91,13 +83,9 @@ class PrimerFilter:
             (data['amplicon_gc_pct'].between(35, 65)) &
             (data['fp_3p_self_run'] <= 2) &
             (data['rp_3p_self_run'] <= 2) &
-            (data['fp_gquad_3p'] == 0) &
-            (data['rp_gquad_3p'] == 0) &
             (data['fp_max_hpoly_run'] <= 4) &
             (data['rp_max_hpoly_run'] <= 4) &
-            (data['amplicon_max_run'] <= 5) &
-            (data['fp_seq'].apply(self.gc_clamp_ok)) &
-            (data['rp_seq'].apply(self.gc_clamp_ok))
+            (data['amplicon_max_run'] <= 5)
         ]
 
 
