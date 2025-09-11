@@ -21,7 +21,7 @@ class PrimerFilter:
     def calc_gc_pct(seq):
         seq = seq.upper()
         gc = seq.count('G') + seq.count('C')
-        return 100 * gc / len(seq) if len(seq) > 0 else 0
+        return 100 * gc / len(seq) if len   (seq) > 0 else 0
 
     @staticmethod
     def max_hpoly_run(seq):
@@ -59,9 +59,6 @@ class PrimerFilter:
             'fp_gc_pct': self.calc_gc_pct(fp),
             'rp_gc_pct': self.calc_gc_pct(rp),
             'amplicon_gc_pct': self.calc_gc_pct(amplicon),
-            'fp_len': len(fp),
-            'rp_len': len(rp),
-            'amplicon_len': len(amplicon),
             'fp_3p_self_run': self.self_3p_run(fp),
             'rp_3p_self_run': self.self_3p_run(rp),
             'fp_max_hpoly_run': self.max_hpoly_run(fp),
@@ -75,7 +72,8 @@ class PrimerFilter:
         df = pd.read_csv(self.csv_filename)
         features = df.apply(self.process_row, axis=1)
         data = pd.concat([df, features], axis=1)
-        return data [
+        return data
+        '''return data [
             (data['overlap_pam'] == 0) &
             (data['overlap_protospacer'] == 0) &   
             (data['fp_gc_pct'].between(35, 65)) &
@@ -86,7 +84,7 @@ class PrimerFilter:
             (data['fp_max_hpoly_run'] <= 4) &
             (data['rp_max_hpoly_run'] <= 4) &
             (data['amplicon_max_run'] <= 5)
-        ]
+        ]'''
 
 
 

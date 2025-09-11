@@ -27,7 +27,7 @@ class PairGenerator:
             for i in range(primerLenRange[0], primerLenRange[1]+1):
                 fp = seq[curPos:curPos + i]
                 for ampEnd in range(amplen[0], amplen[1]+1):
-                    amplicon = seq[curPos + i:curPos+i+ampEnd]
+                    amplicon = seq[curPos:curPos+i+ampEnd]
                     has_pam = False
                     pam_locs = []
                     for pam in ["TTTA", "TTTC", "TTTG", "TTTT"]:
@@ -45,19 +45,15 @@ class PairGenerator:
                         break
 
                     for x in range(primerLenRange[0], primerLenRange[1]+1):
-                        bp = seq[curPos + i + ampEnd:curPos + i + ampEnd+x]
+                        bp = amplicon[len(amplicon)-1-x:]
                         if len(bp) >= primerLenRange[0]:
                             if i in pam_locs:
                                 for cr_len in range(crrnalen[0], crrnalen[1]+1):
                                     crRNA = find_complementary(self, amplicon[i:i+cr_len])
                                     if len(crRNA) >= crrnalen[0]:
-                                        pair = Pair(fp, find_complementary(self, bp), amplicon, crRNA)
-
-
-                                        key = (fp, find_complementary(self, bp), amplicon, crRNA)
+                                        pair = Pair(fp, bp, amplicon, crRNA)
+                                        key = (fp, find_complementary(self, bp)[::-1], amplicon, crRNA)
                                         if key not in seen:
-                                            if fp == "ACGGGTTGGATAAGATAGTAAGTGCAATCTGG" and bp == find_complementary(self,"ACCCAACCCAAACATCTATCATTCACGTTAGA") and amplicon == "GGGTTGTGTTTGAGCGGCGTTTCAGTTGTTTATTTCCCTTTGTTATTCCCTTTGGGGTTGTTGTTTGGTTGTGTGTTTATACCAGCTTATTCAATTCACTTGGTGGTGGTGGCGGGATGGGA" and crRNA == "AAAGGGAAACAATAAGGGAAACCC":
-                                                print("hello")
                                             seen.add(key)
                                             self.primersPairs.append(Pair(*key))
 
