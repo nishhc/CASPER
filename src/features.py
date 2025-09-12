@@ -204,7 +204,7 @@ class FeatureCalculator:
         df["fp_self_dimer_pct"] = df["forward_primer"].map(lambda s: self._percent_mismatch(s, self._revcomp(s)))
         df["rp_self_dimer_pct"] = df["backward_primer"].map(lambda s: self._percent_mismatch(s, self._revcomp(s)))
         df["fp_rp_cross_dimer_pct"] = df.apply(
-            lambda r: self._percent_mismatch(r.get("forward_primer"), r.get("backward_primer"))
+            lambda r: FeatureCalculator._percent_mismatch(r.get("forward_primer"), r.get("backward_primer")), axis=1
         )
 
 

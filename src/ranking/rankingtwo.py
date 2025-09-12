@@ -3,17 +3,17 @@ import pandas as pd
 
 class RankerVibe:
     FEATURE_WEIGHTS = {
-        "crrna_offtarget_mm_imp": 0.12,
-        "fp_offtarget_mm_imp":    0.11,
-        "rp_offtarget_mm_imp":    0.11,
+        "crrna_offtarget_mm_imp": 0.08,
+        "fp_offtarget_mm_imp":    0.07,
+        "rp_offtarget_mm_imp":    0.07,
 
-        "fp_3p_self_run":         0.065,
-        "rp_3p_self_run":         0.065,
-        "fp_rp_3p_cross_run":     0.065,
+        "fp_3p_self_run":         0.045,
+        "rp_3p_self_run":         0.045,
+        "fp_rp_3p_cross_run":     0.050,
 
-        "fp_self_dimer_pct":      0.04,
-        "rp_self_dimer_pct":      0.04,
-        "fp_rp_cross_dimer_pct":  0.04,
+        "fp_self_dimer_pct":      0.1,
+        "rp_self_dimer_pct":      0.1,
+        "fp_rp_cross_dimer_pct":  0.1,
         "fp_gc_pct":              0.025,
         "rp_gc_pct":              0.025,
         "amplicon_gc_pct":        0.025,
@@ -23,7 +23,7 @@ class RankerVibe:
         "guide_mfe_kcal":         0.015,
         "guide_seed_unpaired_frac": 0.03,
 
-        "delta_tm_C":             0.10,
+        "delta_tm_C":             0.08,
         "fp_tm_C":                0.03,
         "rp_tm_C":                0.03,
 
