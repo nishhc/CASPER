@@ -72,8 +72,7 @@ class PrimerFilter:
         df = pd.read_csv(self.csv_filename)
         features = df.apply(self.process_row, axis=1)
         data = pd.concat([df, features], axis=1)
-        return data
-        '''return data [
+        return data [
             (data['overlap_pam'] == 0) &
             (data['overlap_protospacer'] == 0) &   
             (data['fp_gc_pct'].between(35, 65)) &
@@ -84,7 +83,7 @@ class PrimerFilter:
             (data['fp_max_hpoly_run'] <= 4) &
             (data['rp_max_hpoly_run'] <= 4) &
             (data['amplicon_max_run'] <= 5)
-        ]'''
+        ]
 
 
 

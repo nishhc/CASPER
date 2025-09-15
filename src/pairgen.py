@@ -13,6 +13,7 @@ class PairGenerator:
     # forward primer - bp
     # backward primer - complementary
     def generate_primers_pairs(self):
+        print("Generating primer pairs...")
         seen = set()
         primerLenRange = [28,36]
         amplen = [100,200]
@@ -43,13 +44,12 @@ class PairGenerator:
                         
                     if (not has_pam):
                         break
-
                     for x in range(primerLenRange[0], primerLenRange[1]+1):
                         bp = amplicon[len(amplicon)-1-x:]
                         if len(bp) >= primerLenRange[0]:
-                            if i in pam_locs:
+                            for i in pam_locs:
                                 for cr_len in range(crrnalen[0], crrnalen[1]+1):
-                                    crRNA = find_complementary(self, amplicon[i:i+cr_len])
+                                    crRNA = find_complementary(self, amplicon[i:i+cr_len])[::-1]
                                     if len(crRNA) >= crrnalen[0]:
                                         pair = Pair(fp, bp, amplicon, crRNA)
                                         key = (fp, find_complementary(self, bp)[::-1], amplicon, crRNA)

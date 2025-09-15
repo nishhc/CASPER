@@ -11,10 +11,10 @@ TARGET_FASTA = "target.fasta"
 sequence_data = SequenceData(TARGET_FASTA)
 sequence_data.preprocess()
 
-
 primer_generator = PairGenerator(sequence_data)
 primer_generator.generate_primers_pairs()
 print("Base sequences generated")
+
 
 primer_filter = PrimerFilter("pairs.csv")
 filtered = primer_filter.run()
