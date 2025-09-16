@@ -15,7 +15,7 @@ class PairGenerator:
     def generate_primers_pairs(self):
         print("Generating primer pairs...")
         seen = set()
-        primerLenRange = [28,36]
+        primerLenRange = [30,36]
         amplen = [100,200]
         crrnalen = [20,24]
         seq = self.sequence
