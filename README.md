@@ -115,7 +115,7 @@ Our predetermined weights are as follows
 
 We are also developing a feature that will allow users to customize or adjust weights based on their own experimental datasets—making CASPER adaptable to diverse targets, conditions, and research goals.
 ---
-## 📦 Implementation
+##  Implementation
 
 ```
 git clone https://github.com/nishhc/CASPER.git
