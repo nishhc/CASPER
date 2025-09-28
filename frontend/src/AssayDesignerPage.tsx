@@ -13,18 +13,12 @@ export default function AssayDesignerPage() {
   );
 }
 
-/* --------- Sidebar --------- */
 function Sidebar() {
   return (
     <aside className="assay-sidebar">
       <div className="brand">
         <div className="brand-row">
-          <span className="brand-letter">C</span>
-          <span className="brand-letter">A</span>
-          <span className="brand-letter">S</span>
-          <span className="brand-letter">P</span>
-          <span className="brand-letter">E</span>
-          <span className="brand-letter">R</span>
+          <span className="brand-letter">C A S P E R</span>
         </div>
         <small className="brand-sub">Integrated RPA + CRISPR-Cas12 Assay Designer</small>
       </div>
@@ -33,7 +27,6 @@ function Sidebar() {
         <div className="side-group"><span className="side-heading">Projects</span></div>
         <div className="side-divider" />
         <div className="side-group"><span className="side-heading">Designs</span></div>
-        <div className="side-divider" />
         <div className="side-group"><span className="side-heading">Rankings</span></div>
       </nav>
     </aside>
@@ -42,7 +35,6 @@ function Sidebar() {
 
 /* --------- Main Card --------- */
 function AssayDesignerCard() {
-  const [useConservation, setUseConservation] = useState(false);
 
   const [primerMin, setPrimerMin] = useState<string>("28");
   const [primerMax, setPrimerMax] = useState<string>("36");
@@ -64,7 +56,6 @@ function AssayDesignerCard() {
     // you can navigate or post these values
     // example: console.log them for now
     console.log({
-      useConservation,
       primerMin, primerMax,
       crrnaMin, crrnaMax,
       ampMin, ampMax,
@@ -79,17 +70,6 @@ function AssayDesignerCard() {
 
   return (
     <section className="assay-card">
-      <div className="top-row">
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={useConservation}
-            onChange={(e) => setUseConservation(e.target.checked)}
-          />
-          <span>Use Conservation</span>
-          <InfoIcon />
-        </label>
-      </div>
 
       <div className="grid">
         {/* Primer Length */}
@@ -238,16 +218,6 @@ function FieldPair(props: {
         <input className="pill-input" {...rightProps} />
       </div>
     </div>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" className="info-icon" aria-hidden>
-      <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" />
-      <circle cx="12" cy="8" r="1.2" fill="currentColor" />
-      <path d="M12 11v6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
   );
 }
 
