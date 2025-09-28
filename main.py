@@ -6,17 +6,20 @@ from casper.ranking.ranker import *
 import shutil
 
 TARGET_FASTA = "target.fasta"
+GENERATION = True # for only ranking vs generation
+OPTIONAL_INPUT_CSV = "existing.csv"
 
 sequence_data = SequenceData(TARGET_FASTA)
 sequence_data.preprocess()
 
-primer_generator = PairGenerator(sequence_data)
-primer_generator.generate_primers_pairs(sequence_data.sequence)
-primer_generator.to_csv("pairs.csv")
-shutil.move("pairs.csv", "output/")
-print("Base sequences generated")
+if GENERATION:
+    primer_generator = PairGenerator(sequence_data)
+    primer_generator.generate_primers_pairs(sequence_data.sequence)
+    primer_generator.to_csv("pairs.csv")
+    shutil.move("pairs.csv", "output/")
+    print("Base sequences generated")
 
-primer_filter = PrimerFilter("output/pairs.csv")
+primer_filter = PrimerFilter("output/pairs.csv" if GENERATION else OPTIONAL_INPUT_CSV)
 filtered = primer_filter.run()
 filtered.to_csv("filtered_sequences.csv") 
 shutil.move("filtered_sequences.csv", "output/")
