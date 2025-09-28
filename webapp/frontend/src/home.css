@@ -1,0 +1,106 @@
+/* Reset default body spacing */
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+.hero {
+  position: relative;
+  min-height: 100vh; /* fill full screen */
+  width: 100%;
+  overflow: hidden;
+  background: linear-gradient(
+    to right,
+    #C2E9FF 0%,
+    #E0F4FF 33%,
+    #FFFFFF 100%
+  );
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+
+
+.content {
+  position: relative;
+  width: 100%;
+  min-height: 100vh; /* match hero full screen */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1.5rem 2rem;
+
+.title {
+  font-family: 'Donegal One', serif;
+  font-weight: 400;
+  color: #000000;
+  font-size: clamp(40px, 7vw, 96px);
+  letter-spacing: .6em;
+  user-select: none;
+}
+.contours {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.25;      /* faint */
+  stroke: #9fb6c4;    /* soft gray-blue */
+  pointer-events: none;
+}
+
+.subtitle {
+  margin-top: 1.25rem;
+  color: #000000; /* neutral-500/600 */
+  font-size: clamp(14px, 2.2vw, 18px);
+}
+
+.buttons {
+  display: flex;
+  gap: .9rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  margin-top: 2rem;
+}
+
+.pill {
+  display: inline-block;
+  padding: .6rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid #d4d4d4;
+  background: rgba(255, 255, 255, .7);
+  color: #3f3f46;
+  text-decoration: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .6);
+  backdrop-filter: saturate(1.2) blur(2px);
+  transition: background .2s ease, transform .1s ease;
+}
+
+.pill:hover {
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.fade {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 96px;
+  background: linear-gradient(to top, rgba(255,255,255,.6), transparent);
+  pointer-events: none;
+}
+.buttons {
+  display: flex;
+  gap: .9rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 3rem; /* push away from edge */
+}
+
