@@ -7,7 +7,7 @@ import shutil
 import argparse
 import os
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="A script to generate, filter, and rank primer pairs for a given target sequence."
     )
@@ -63,3 +63,6 @@ if __name__ == "__main__":
     ranked = ranking.rank()
     ranked.to_csv("ranked.csv", index=False)
     shutil.move("ranked.csv", "output/")
+
+if __name__ == "__main__":
+    main()

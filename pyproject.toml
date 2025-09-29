@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "casper"
+version = "0.1.0"
+description = "CASPER: A tool to generate, filter, and rank primer pairs for CRISPR and RPA workflows."
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [
+    { include = "casper" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+biopython = "1.85"
+joblib = "1.5.2"
+numpy = "1.26.4"
+pandas = "2.3.2"
+primer3-py = "2.2.0"
+python-dateutil = "2.9.0.post0"
+pytz = "2025.2"
+scikit-learn = "1.7.2"
+scipy = "1.16.2"
+setuptools = "80.9.0"
+six = "1.17.0"
+threadpoolctl = "3.6.0"
+tzdata = "2025.2"
+ViennaRNA = "2.7.0"
+
+[tool.poetry.scripts]
+casper = "main:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
