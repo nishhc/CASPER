@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+from casper.utils.casper_logger import *
 
 class PrimerFilter:
     def __init__(self, csv_filename):
@@ -66,16 +67,18 @@ class PrimerFilter:
             'overlap_protospacer': overlap_protospacer
         })
 
-    def run(self):
+    def run(self, gc_pct_range=[35,65]):
         df = pd.read_csv(self.csv_filename)
+        clog(f"GC Percentage Filter {gc_pct_range[0]}%-{gc_pct_range[1]}%", "BASE FILTERS")
+        print('Filtering sets')
         features = df.apply(self.process_row, axis=1)
         data = pd.concat([df, features], axis=1)
         return data [
             (data['overlap_pam'] == 0) &
             (data['overlap_protospacer'] == 0) &   
-            (data['fp_gc_pct'].between(35, 65)) &
-            (data['rp_gc_pct'].between(35, 65)) &
-            (data['amplicon_gc_pct'].between(35, 65)) &
+            (data['fp_gc_pct'].between(gc_pct_range[0], gc_pct_range[1])) &
+            (data['rp_gc_pct'].between(gc_pct_range[0], gc_pct_range[1])) &
+            (data['amplicon_gc_pct'].between(gc_pct_range[0], gc_pct_range[1])) &
             (data['fp_3p_self_run'] <= 2) &
             (data['rp_3p_self_run'] <= 2) &
             (data['fp_max_hpoly_run'] <= 4) &

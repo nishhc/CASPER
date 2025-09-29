@@ -133,6 +133,7 @@ class Ranker:
 
     def rank(self):
         df = self.df.copy()
+        num = 1
         for f in self.FEATURE_WEIGHTS:
             if f in df.columns:
                 u = self._feature_utility(f, df[f].to_numpy(dtype=float))
@@ -161,5 +162,5 @@ class Ranker:
         self.df = df
         return df
 
-    def to_csv(self, output_csv):
-        self.df.to_csv(output_csv, index=False)
+    def to_csv(self, output_csv, sets):
+        self.df.head(sets).to_csv(output_csv, index=False)

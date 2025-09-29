@@ -2,6 +2,7 @@ from casper.utils import *
 from casper.utils.sequence_handler import *
 from casper.set_generation.Pair import *
 import csv
+from casper.utils.casper_logger import *
 
 class PairGenerator:
 
@@ -13,6 +14,7 @@ class PairGenerator:
     # forward primer - bp
     # backward primer - complementary
     def generate_primers_pairs(self, seq, primerLenRange=[30,36], amplen=[100,200], crrnalen=[20,24]):
+        clog(f"Primer Length: {primerLenRange[0]}-{primerLenRange[1]}\nAmplicon Length: {amplen[0]}-{amplen[1]}\ncrRNA Length: {crrnalen[0]}-{crrnalen[1]}", "BASE SET GENERATION")
         print("Generating primer pairs...")
         seen = set()
         # len - 1 (?) - 2(smallest primer) - smallest amplicion
