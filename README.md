@@ -119,7 +119,7 @@ We are also developing a feature that will allow users to customize or adjust we
 
 ```
 git clone https://github.com/nishhc/CASPER.git
-conda create --name CASPER python=3.9
+conda create --name CASPER python=3.12
 conda activate CASPER
 cd CASPER
 pip install -r requirements.txt
