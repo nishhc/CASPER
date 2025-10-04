@@ -88,8 +88,8 @@ def headless(config):
     shutil.move("output_with_features.csv", "output/")
     
     ranking = Ranker("output/output_with_features.csv")
-    print("Finished ranking")
     ranking.rank()
+    print("Finished ranking")
     ranking.to_csv("ranked.csv", sets)
     shutil.move("ranked.csv", "output/")
 

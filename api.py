@@ -10,8 +10,23 @@ import json
 from fastapi import FastAPI, UploadFile, Form
 from pydantic import BaseModel
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware 
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class PrimerConfig(BaseModel):
     min_primer_length: int
@@ -27,37 +42,32 @@ class PrimerConfig(BaseModel):
 
 @app.post("/process")
 async def process_files(
-    config: str = Form(...),   # JSON as string
+    config: str = Form(...),  
     target_fasta: UploadFile = None,
     input_csv: UploadFile = None
 ):
     print("Received config:", config)
     print("Received FASTA:", target_fasta.filename if target_fasta else "None")
     print("Received CSV:", input_csv.filename if input_csv else "None")
-    # Parse config JSON string into Pydantic model
     config = PrimerConfig(**json.loads(config))
 
-    # Reset output dir
     output_dir = "output/"
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
     os.mkdir(output_dir)
 
-    # Save FASTA file
     fasta_path = None
     if target_fasta:
         fasta_path = os.path.join(output_dir, "input.fasta")
         with open(fasta_path, "wb") as f:
             f.write(await target_fasta.read())
 
-    # Save optional CSV
     csv_path = None
     if input_csv:
         csv_path = os.path.join(output_dir, "input.csv")
         with open(csv_path, "wb") as f:
             f.write(await input_csv.read())
 
-    # Run your existing pipeline
     seq = SequenceData(fasta_path)
     seq.preprocess()
 
@@ -84,7 +94,7 @@ async def process_files(
 
     ranker = Ranker(f"{output_dir}/output_with_features.csv")
     ranker.rank()
+    print("Finished ranking")
     ranker.to_csv(f"{output_dir}/ranked.csv", config.num_sets)
 
-    # Return final CSV as download
     return FileResponse(f"{output_dir}/ranked.csv", filename="ranked.csv")
