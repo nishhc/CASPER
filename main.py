@@ -10,6 +10,13 @@ import os
 import configparser
 
 def main():
+    config = configparser.ConfigParser()
+    config.read("config.ini")
+    run_headless = int(config["FEATURES"]["MIN_PRIMER_LENGTH"])
+    if run_headless:
+        headless(config)
+
+def headless(config):
     parser = argparse.ArgumentParser(
         description="A script to generate, filter, and rank primer pairs for a given target sequence."
     )
@@ -43,9 +50,6 @@ def main():
     GENERATION = OPTIONAL_INPUT_CSV is None 
 
     try:
-        config = configparser.ConfigParser()
-        config.read("config.ini")
-
         min_primer_length = int(config["FEATURES"]["MIN_PRIMER_LENGTH"])
         max_primer_length = int(config["FEATURES"]["MAX_PRIMER_LENGTH"])
 
