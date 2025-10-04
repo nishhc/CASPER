@@ -17,12 +17,14 @@ class SequenceData:
                 if not lines:
                     raise ValueError("Input file is empty.")
                 
+                startLine = 1;
                 if lines[0].startswith('>'):
                     self.sequence_name = lines[0].strip()[1:]
                 else:
-                    raise ValueError("FASTA file must start with a header line (>).")
-                
-                raw_sequence = "".join(line.strip() for line in lines[1:])
+                    startLine = 0
+                    # raise ValueError("FASTA file must start with a header line (>).")
+            
+                raw_sequence = "".join(line.strip() for line in lines[startLine:])
                 self.sequence = self.cleanseq(raw_sequence)
                 
             self.stat()
