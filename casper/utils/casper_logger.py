@@ -5,3 +5,11 @@ def clog(msg, title="CASPER LOGGING"):
 {msg}
 {"-"*tlen}
 ''')
+    
+def rclog(msg, title="CASPER LOGGING"):
+    tlen = len(f"-------------------{title}-------------------")
+    return(f'''
+-------------------{title}-------------------
+{msg}
+{"-"*tlen}
+''')
