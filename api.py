@@ -11,6 +11,8 @@ from fastapi import FastAPI, UploadFile, Form
 from pydantic import BaseModel
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware 
+from fastapi.responses import JSONResponse
+import pandas as pd
 
 app = FastAPI()
 
@@ -97,4 +99,15 @@ async def process_files(
     print("Finished ranking")
     ranker.to_csv(f"{output_dir}/ranked.csv", config.num_sets)
 
-    return FileResponse(f"{output_dir}/ranked.csv", filename="ranked.csv")
+    ranked_csv_path = f"{output_dir}/ranked.csv"
+
+    df = pd.read_csv(ranked_csv_path)
+    json_data = df.to_dict(orient='records')
+
+    with open(ranked_csv_path, 'r') as f:
+        csv_string = f.read()
+
+    return JSONResponse(content={
+        "jsonData": json_data,
+        "csvData": csv_string
+    })
