@@ -53,14 +53,11 @@ async def process_files(
 ):
     async def stream_generator():
         try:
-            print("Received config:", config)
             print("Received FASTA:", target_fasta.filename if target_fasta else "None")
             print("Received CSV:", input_csv.filename if input_csv else "None")
-
-            yield json.dumps({"status": f"Received config:, {config}"}) + "\n"
             yield json.dumps({"status": f"Received FASTA:, {target_fasta.filename if target_fasta else 'None'}"}) + "\n"
             yield json.dumps({"status": f"Received CSV:, {input_csv.filename if input_csv else 'None'}"}) + "\n"
-            
+
             if await request.is_disconnected():
                 raise asyncio.CancelledError
 
@@ -90,7 +87,9 @@ async def process_files(
             
             GENERATION = csv_path is None and True
             if GENERATION:
-                yield json.dumps({"status": "Generating primer pairs. This will take a while..."}) + "\n"
+                print("Received config:", config)
+                yield json.dumps({"status": f"Received config:, {config}"}) + "\n"
+                yield json.dumps({"status": "Generating primer pairs. This could take a while..."}) + "\n"
                 if await request.is_disconnected():
                     raise asyncio.CancelledError
                 gen = PairGenerator(seq)
