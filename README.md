@@ -11,7 +11,7 @@ This framework integrates multiple features important for RPA + Cas12a design an
 
 # Features
 
-Read 2025.igem.wiki/lambert-ga/software
+Read [our software page on the 2025 wiki.](2025.igem.wiki/lambert-ga/software)
 
 ##  Implementation
 
