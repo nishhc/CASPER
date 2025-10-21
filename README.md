@@ -15,6 +15,8 @@ Read 2025.igem.wiki/lambert-ga/software
 
 ##  Implementation
 
+Edit config.ini to reflect any necessary changes. Explanations for each feature are given in the file.
+
 ```
 git clone https://github.com/nishhc/CASPER.git
 pip install -r requirements.txt
