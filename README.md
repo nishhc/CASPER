@@ -15,13 +15,15 @@ Read 2025.igem.wiki/lambert-ga/software
 
 ##  Implementation
 
-Edit config.ini to reflect any necessary changes. Explanations for each feature are given in the file.
-
+### Installation 
 ```
 git clone https://github.com/nishhc/CASPER.git
 pip install -r requirements.txt
 pip install -e .
 ```
+
+Edit config.ini to reflect any necessary changes. Explanations for each feature are given in the file.
+
 To use the generator model to generate new RPA primers and crRNAs, add the fasta file of your target fasta into the main CASPER directory.
 Then, run
 ```
